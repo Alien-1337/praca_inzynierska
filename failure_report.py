@@ -1,9 +1,30 @@
 import tkinter as tk
 from tkinter import messagebox
+from datetime import datetime, timedelta
 import db_utils
-from datetime import datetime
 
 def show_failure_form(username):
+    def calculate_downtime(event=None):
+        try:
+            start = time_reported.get()
+            end = time_resolved.get()
+            if start and end:
+                fmt = "%H:%M"
+                start_dt = datetime.strptime(start, fmt)
+                end_dt = datetime.strptime(end, fmt)
+                if end_dt < start_dt:
+                    end_dt += timedelta(days=1)
+                diff = int((end_dt - start_dt).total_seconds() / 60)
+                downtime.config(state="normal")
+                downtime.delete(0, "end")
+                downtime.insert(0, str(diff))
+                downtime.config(state="readonly")
+        except:
+            downtime.config(state="normal")
+            downtime.delete(0, "end")
+            downtime.insert(0, "")
+            downtime.config(state="readonly")
+
     def submit():
         try:
             data = (
@@ -17,10 +38,7 @@ def show_failure_form(username):
                 time_resolved.get(),
                 int(downtime.get()),
                 department.get(),
-                category.get(),
-                failure_type.get(),
-                description.get(),
-                resolver.get()
+                category.get
             )
             if not all(data):
                 messagebox.showwarning("Uwaga", "Wszystkie pola muszą być wypełnione.")
