@@ -41,12 +41,12 @@
     &quot;assignee&quot;: &quot;RafalSa&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/RafalSa/CMMS_by_RafalS",
-    "accountId": "ee34d9e6-0ca2-466d-9113-92752c4ad6d1"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/RafalSa/CMMS_by_RafalS&quot;,
+    &quot;accountId&quot;: &quot;ee34d9e6-0ca2-466d-9113-92752c4ad6d1&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
