@@ -3,10 +3,12 @@ import hashlib
 import db_utils
 import main_menu
 
+
 def hash_password(password, salt):
     if isinstance(salt, bytes):
         salt = salt.hex()
     return hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+
 
 def show_login_window():
     ctk.set_appearance_mode("dark")
@@ -41,25 +43,42 @@ def show_login_window():
             label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
             return
 
-        _, _, stored_hash, stored_salt = user_data
-        input_hash = hash_password(password, stored_salt)
+        # --- TU BYŁ BŁĄD. PONIŻEJ JEST POPRAWIONA LINIA ---
+        # Używamy *_, aby zignorować nadmiarowe kolumny z bazy danych
+        try:
+            _, _, stored_hash, stored_salt, *_ = user_data
 
-        if input_hash == stored_hash:
-            label_message.configure(text="Zalogowano pomyślnie", text_color="green")
-            window.destroy()
-            main_menu.show_main_menu(username)
-        else:
-            label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
+            input_hash = hash_password(password, stored_salt)
+
+            if input_hash == stored_hash:
+                label_message.configure(text="Zalogowano pomyślnie", text_color="green")
+                # Opóźnienie zamknięcia okna minimalizuje błędy "invalid command name"
+                window.after(100, lambda: [window.destroy(), main_menu.show_main_menu(username)])
+            else:
+                label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
+        except ValueError:
+            label_message.configure(text="Błąd danych użytkownika (struktura bazy)", text_color="red")
+            print(f"DEBUG: Otrzymano {len(user_data)} kolumn, oczekiwano minimum 4.")
 
     def open_register():
+        # Najpierw zamykamy okno
         window.destroy()
-        import register_window
-        register_window.show_register_window()
+
+        # Potem importujemy i otwieramy nowe w bloku try-except, żeby widzieć błąd
+        try:
+            import register_window
+            register_window.show_register_window()
+        except Exception as e:
+            print("!!! BŁĄD OTWIERANIA REJESTRACJI !!!")
+            print(e)
+            import traceback
+            traceback.print_exc()
 
     btn_login = ctk.CTkButton(frame, text="Zaloguj się", width=200, command=login)
     btn_login.pack(pady=(20, 10))
 
-    btn_register = ctk.CTkButton(frame, text="Załóż konto", width=200, fg_color="#444", hover_color="#555", command=open_register)
+    btn_register = ctk.CTkButton(frame, text="Załóż konto", width=200, fg_color="#444", hover_color="#555",
+                                 command=open_register)
     btn_register.pack(pady=(0, 30))
 
     window.mainloop()

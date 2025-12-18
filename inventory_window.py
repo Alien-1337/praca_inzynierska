@@ -1,16 +1,17 @@
 import customtkinter as ctk
-import sqlite3
+import tkinter.messagebox
+import db_utils
 
 
 def show_inventory_window(username, back_to_menu_func):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
-    # Tworzymy podokno zamiast nowego okna głównego
+    # Tworzymy podokno
     window = ctk.CTkToplevel()
     window.title("Magazyn - CMMS by RafałS")
-    window.geometry("700x600")
-    window.grab_set()  # blokuje interakcję z głównym oknem
+    window.geometry("900x700")
+    window.grab_set()
     window.protocol("WM_DELETE_WINDOW", lambda: back_to_menu(window, back_to_menu_func, username))
 
     frame = ctk.CTkFrame(window, corner_radius=15)
@@ -18,59 +19,124 @@ def show_inventory_window(username, back_to_menu_func):
 
     label = ctk.CTkLabel(
         frame,
-        text=f"Przegląd magazynu\nUżytkownik: {username}",
-        font=ctk.CTkFont(size=20, weight="bold"),
+        text=f"Stan Magazynowy\nUżytkownik: {username}",
+        font=ctk.CTkFont(size=22, weight="bold"),
         justify="center"
     )
-    label.pack(pady=(20, 10))
+    label.pack(pady=(20, 15))
 
-    search_entry = ctk.CTkEntry(frame, placeholder_text="Wyszukaj po nazwie lub Numerze SAP", width=400)
+    # --- Pasek wyszukiwania (Zaktualizowany opis) ---
+    search_entry = ctk.CTkEntry(frame, placeholder_text="Wpisz nazwę części lub numer SAP...", width=500)
     search_entry.pack(pady=(5, 5))
 
-    list_frame = ctk.CTkScrollableFrame(frame, width=650, height=350, corner_radius=10)
-    list_frame.pack(pady=(0, 15))
+    # --- Lista produktów ---
+    list_frame = ctk.CTkScrollableFrame(frame, width=800, height=400, corner_radius=10)
+    list_frame.pack(pady=(10, 15))
 
     def update_list(data):
+        # Czyścimy obecną listę
         for widget in list_frame.winfo_children():
             widget.destroy()
+
+        if not data:
+            ctk.CTkLabel(list_frame, text="Brak wyników.", text_color="gray").pack(pady=10)
+            return
+
         for row in data:
-            text = f"ID: {row[0]} | Nazwa: {row[1]} | SAP: {row[2]} | Ref: {row[3]} | Ilość: {row[4]} | Miejsce: {row[5]}"
-            ctk.CTkLabel(list_frame, text=text, anchor="w", font=ctk.CTkFont(size=14), justify="left").pack(
-                anchor="w", padx=10, pady=2
-            )
+            # db_utils zwraca: (id, name, sap, ref, qty, location, price)
+            p_id, name, sap, ref, qty, loc, price = row
+
+            # Formatowanie tekstu
+            text = f"ID: {p_id} | {name}\nSAP: {sap} | Ref: {ref} | Lok: {loc} | Ilość: {qty} szt. | Cena: {price:.2f} PLN"
+
+            # Karta produktu
+            item_card = ctk.CTkFrame(list_frame, fg_color="#333333", corner_radius=8)
+            item_card.pack(fill="x", pady=5, padx=5)
+
+            ctk.CTkLabel(item_card, text=text, anchor="w", justify="left", font=ctk.CTkFont(size=14)).pack(pady=8,
+                                                                                                           padx=10,
+                                                                                                           anchor="w")
 
     def search_inventory():
         query = search_entry.get().strip()
-        conn = sqlite3.connect("cmms.db")
-        c = conn.cursor()
-        if query:
-            c.execute("""
-                SELECT id, name, sap_number, reference_number, quantity, location
-                FROM inventory
-                WHERE name LIKE ? OR sap_number LIKE ?
-            """, (f"%{query}%", f"%{query}%"))
-        else:
-            c.execute("SELECT id, name, sap_number, reference_number, quantity, location FROM inventory")
-        data = c.fetchall()
-        conn.close()
-        update_list(data)
+        # Wywołujemy funkcję z db_utils, która teraz szuka po Nazwie LUB SAP
+        results = db_utils.get_inventory_items(query)
+        update_list(results)
 
-    ctk.CTkButton(frame, text="Szukaj", command=search_inventory).pack(pady=(0, 10))
+    # Przycisk Szukaj
+    ctk.CTkButton(frame, text="Szukaj", width=200, command=search_inventory).pack(pady=(0, 10))
+
+    # --- Funkcja dodawania nowego elementu (Popup) ---
+    def open_add_item_window():
+        add_win = ctk.CTkToplevel(window)
+        add_win.title("Dodaj element do magazynu")
+        add_win.geometry("500x600")
+        add_win.grab_set()
+
+        ctk.CTkLabel(add_win, text="Nowa Część", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+
+        entry_name = ctk.CTkEntry(add_win, placeholder_text="Nazwa części", width=300)
+        entry_name.pack(pady=10)
+
+        entry_sap = ctk.CTkEntry(add_win, placeholder_text="Numer SAP", width=300)
+        entry_sap.pack(pady=10)
+
+        entry_ref = ctk.CTkEntry(add_win, placeholder_text="Numer Referencyjny", width=300)
+        entry_ref.pack(pady=10)
+
+        entry_qty = ctk.CTkEntry(add_win, placeholder_text="Ilość (szt.)", width=300)
+        entry_qty.pack(pady=10)
+
+        entry_loc = ctk.CTkEntry(add_win, placeholder_text="Lokalizacja (np. Regał A)", width=300)
+        entry_loc.pack(pady=10)
+
+        entry_price = ctk.CTkEntry(add_win, placeholder_text="Cena jednostkowa (PLN)", width=300)
+        entry_price.pack(pady=10)
+
+        def save_item():
+            try:
+                name = entry_name.get()
+                sap = entry_sap.get()
+                ref = entry_ref.get()
+                loc = entry_loc.get()
+
+                qty = int(entry_qty.get())
+                price = float(entry_price.get().replace(",", "."))
+
+                if not name or not sap:
+                    tkinter.messagebox.showwarning("Błąd", "Nazwa i SAP są wymagane.")
+                    return
+
+                db_utils.add_inventory_item(name, sap, ref, qty, loc, price)
+
+                tkinter.messagebox.showinfo("Sukces", "Dodano element do magazynu.")
+                add_win.destroy()
+                search_inventory()  # Odświeżenie listy
+
+            except ValueError:
+                tkinter.messagebox.showerror("Błąd", "Ilość musi być liczbą całkowitą, a Cena liczbą (np. 12.50).")
+            except Exception as e:
+                tkinter.messagebox.showerror("Błąd bazy", str(e))
+
+        ctk.CTkButton(add_win, text="Zapisz", command=save_item, fg_color="green").pack(pady=30)
+
+    # Przycisk dodawania
+    btn_add = ctk.CTkButton(frame, text="+ Dodaj nową część", fg_color="#D97706", hover_color="#B45309", width=200,
+                            command=open_add_item_window)
+    btn_add.pack(pady=(10, 5))
 
     # Pierwsze wczytanie danych
-    conn = sqlite3.connect("cmms.db")
-    c = conn.cursor()
-    c.execute("SELECT id, name, sap_number, reference_number, quantity, location FROM inventory")
-    update_list(c.fetchall())
-    conn.close()
+    search_inventory()
 
+    # Przycisk Powrót
     btn_back = ctk.CTkButton(
         frame,
         text="Powrót do menu",
         width=200,
+        fg_color="#444", hover_color="#555",
         command=lambda: back_to_menu(window, back_to_menu_func, username)
     )
-    btn_back.pack(pady=(10, 10))
+    btn_back.pack(pady=(10, 20))
 
 
 def back_to_menu(window, back_to_menu_func, username):
