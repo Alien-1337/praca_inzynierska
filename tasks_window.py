@@ -1,4 +1,3 @@
-# tasks_window.py
 import customtkinter as ctk
 from tkcalendar import DateEntry
 from tkinter import ttk, messagebox
@@ -33,11 +32,25 @@ class TasksWindow:
         tree_frame = ctk.CTkFrame(self.window)
         tree_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # Treeview dla tabeli
-        self.treeview = ttk.Treeview(tree_frame, columns=("Data", "Dzial", "Typ", "Opis"), show="headings")
-        for col in ("Data", "Dzial", "Typ", "Opis"):
-            self.treeview.heading(col, text=col, anchor="center")
-            self.treeview.column(col, width=250, anchor="center")
+        # Treeview dla tabeli - DODANO KOLUMNĘ INTERWAŁ
+        columns = ("Data", "Interwał", "Dzial", "Typ", "Opis")
+        self.treeview = ttk.Treeview(tree_frame, columns=columns, show="headings")
+
+        self.treeview.heading("Data", text="Data Startu")
+        self.treeview.column("Data", width=100, anchor="center")
+
+        self.treeview.heading("Interwał", text="Interwał")
+        self.treeview.column("Interwał", width=100, anchor="center")
+
+        self.treeview.heading("Dzial", text="Dział")
+        self.treeview.column("Dzial", width=150, anchor="center")
+
+        self.treeview.heading("Typ", text="Typ")
+        self.treeview.column("Typ", width=150, anchor="center")
+
+        self.treeview.heading("Opis", text="Opis")
+        self.treeview.column("Opis", width=400, anchor="w")
+
         self.treeview.pack(fill="both", expand=True, pady=10, padx=10)
 
         # --- Przyciski ---
@@ -57,24 +70,35 @@ class TasksWindow:
     def load_tasks(self):
         for row in self.treeview.get_children():
             self.treeview.delete(row)
-        for task in db_utils.get_tpm_tasks():
-            self.treeview.insert("", "end", values=(task[1], task[2], task[3], task[4]))
+        # db_utils zwraca: (id, date, interval, field, type, description)
+        # Treeview potrzebuje ukrytego ID, ale tu upraszczamy wyświetlanie
+        # Przechowujemy ID w ukrytym tagu lub po prostu mapujemy po zaznaczeniu
+        # Tutaj insertujemy values widoczne, a ID przekażemy przy edycji w inny sposób
+        self.current_tasks_data = db_utils.get_tpm_tasks()  # Cache danych żeby mieć ID
+        for task in self.current_tasks_data:
+            # task = (id, date, interval, field, type, description)
+            self.treeview.insert("", "end", iid=task[0], values=(task[1], task[2], task[3], task[4], task[5]))
 
     def add_task(self):
         self.task_editor()
 
     def edit_task(self):
-        selected = self.treeview.focus()
-        if not selected:
+        selected_iid = self.treeview.focus()  # To jest ID z bazy danych (ustawione w iid)
+        if not selected_iid:
             messagebox.showwarning("Brak wyboru", "Wybierz zadanie do edycji")
             return
-        values = self.treeview.item(selected, 'values')
-        self.task_editor(values)
+
+        # Pobieramy wartości z drzewa
+        values = self.treeview.item(selected_iid, 'values')
+        # values = (Data, Interwał, Dzial, Typ, Opis)
+        # Potrzebujemy przekazać też ID (selected_iid)
+        full_data = (selected_iid,) + values
+        self.task_editor(full_data)
 
     def task_editor(self, values=None):
         editor = ctk.CTkToplevel(self.window)
         editor.title("Edytuj zadanie" if values else "Dodaj zadanie")
-        editor.geometry("800x500")
+        editor.geometry("600x600")
         editor.grab_set()
 
         title_label = ctk.CTkLabel(
@@ -86,56 +110,97 @@ class TasksWindow:
         title_label.pack(pady=(20, 10))
 
         form_frame = ctk.CTkFrame(editor)
-        form_frame.pack(padx=40, pady=10, fill="both", expand=True)
+        form_frame.pack(padx=20, pady=10, fill="both", expand=True)
 
-        labels = ["Data przeglądu:", "Dział:", "Typ zadania:", "Opis czynności:"]
         self.entries = {}
 
-        for i, text in enumerate(labels):
-            lbl = ctk.CTkLabel(form_frame, text=text, font=ctk.CTkFont(size=16), text_color="white")
-            lbl.grid(row=i, column=0, sticky="e", padx=10, pady=10)
+        # 1. Data
+        ctk.CTkLabel(form_frame, text="Data startu:").grid(row=0, column=0, sticky="e", padx=10, pady=10)
+        date_entry = DateEntry(form_frame, width=16, background='darkblue', foreground='white', borderwidth=2,
+                               date_pattern='yyyy-mm-dd')
+        date_entry.grid(row=0, column=1, sticky="w", padx=10, pady=10)
+        self.entries["Data"] = date_entry
 
-            if text == "Data przeglądu:":
-                entry = DateEntry(form_frame, width=16, background='darkblue',
-                                  foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd', font=("Arial", 14))
-            elif text == "Dział:":
-                entry = ctk.CTkComboBox(form_frame, values=["mechanik", "elektryk", "automatyk"], width=400,
-                                        font=ctk.CTkFont(size=16))
-            elif text == "Opis czynności:":
-                entry = ctk.CTkTextbox(form_frame, width=400, height=150, font=ctk.CTkFont(size=16))
-                entry.configure(wrap="word")
-            else:
-                entry = ctk.CTkEntry(form_frame, width=400, font=ctk.CTkFont(size=16))
-                entry.configure(justify="center")
+        # 2. Interwał (Liczba + Jednostka)
+        ctk.CTkLabel(form_frame, text="Interwał:").grid(row=1, column=0, sticky="e", padx=10, pady=10)
+        interval_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        interval_frame.grid(row=1, column=1, sticky="w", padx=10)
 
-            entry.grid(row=i, column=1, sticky="w", padx=10, pady=10)
-            self.entries[text] = entry
+        int_num = ctk.CTkEntry(interval_frame, width=50, justify="center")
+        int_num.pack(side="left", padx=(0, 5))
+        int_num.insert(0, "1")
 
+        int_unit = ctk.CTkComboBox(interval_frame, values=["Dni", "Tygodnie", "Miesiące", "Lata"], width=120)
+        int_unit.pack(side="left")
+
+        self.entries["IntervalNum"] = int_num
+        self.entries["IntervalUnit"] = int_unit
+
+        # 3. Dział
+        ctk.CTkLabel(form_frame, text="Dział:").grid(row=2, column=0, sticky="e", padx=10, pady=10)
+        field_entry = ctk.CTkComboBox(form_frame, values=["mechanik", "elektryk", "automatyk"], width=250)
+        field_entry.grid(row=2, column=1, sticky="w", padx=10, pady=10)
+        self.entries["Dzial"] = field_entry
+
+        # 4. Typ
+        ctk.CTkLabel(form_frame, text="Typ zadania:").grid(row=3, column=0, sticky="e", padx=10, pady=10)
+        type_entry = ctk.CTkEntry(form_frame, width=250)
+        type_entry.grid(row=3, column=1, sticky="w", padx=10, pady=10)
+        self.entries["Typ"] = type_entry
+
+        # 5. Opis
+        ctk.CTkLabel(form_frame, text="Opis czynności:").grid(row=4, column=0, sticky="e", padx=10, pady=10)
+        desc_entry = ctk.CTkTextbox(form_frame, width=250, height=100)
+        desc_entry.grid(row=4, column=1, sticky="w", padx=10, pady=10)
+        self.entries["Opis"] = desc_entry
+
+        # Wypełnianie danymi przy edycji
         if values:
-            self.entries["Data przeglądu:"].set_date(values[0])
-            self.entries["Dział:"].set(values[1])
-            self.entries["Typ zadania:"].insert(0, values[2])
-            self.entries["Opis czynności:"].insert("0.0", values[3])
+            # values = (ID, Data, InterwałString, Dzial, Typ, Opis)
+            self.entries["Data"].set_date(values[1])
 
-        save_btn = ctk.CTkButton(editor, text="Zapisz", width=150, height=50, font=ctk.CTkFont(size=16),
+            # Rozbijanie interwału np. "2 Tygodnie"
+            full_int = values[2]
+            try:
+                num, unit = full_int.split(' ', 1)
+                self.entries["IntervalNum"].delete(0, "end")
+                self.entries["IntervalNum"].insert(0, num)
+                self.entries["IntervalUnit"].set(unit)
+            except:
+                pass  # Zostaw domyślne
+
+            self.entries["Dzial"].set(values[3])
+            self.entries["Typ"].insert(0, values[4])
+            self.entries["Opis"].insert("0.0", values[5])
+
+        save_btn = ctk.CTkButton(editor, text="Zapisz", width=150, height=40, font=ctk.CTkFont(size=16),
                                  command=lambda: self.save_task(editor, values))
         save_btn.pack(pady=20)
 
     def save_task(self, editor, values=None):
-        date = self.entries["Data przeglądu:"].get()
-        field = self.entries["Dział:"].get()
-        type_ = self.entries["Typ zadania:"].get()
-        desc_widget = self.entries["Opis czynności:"]
-        desc = desc_widget.get("0.0", "end").strip()
+        date_val = self.entries["Data"].get()
 
-        if not (date and field and type_ and desc):
+        # Łączenie interwału
+        i_num = self.entries["IntervalNum"].get()
+        i_unit = self.entries["IntervalUnit"].get()
+        if not i_num.isdigit():
+            messagebox.showerror("Błąd", "Interwał musi być liczbą")
+            return
+        interval_val = f"{i_num} {i_unit}"
+
+        field_val = self.entries["Dzial"].get()
+        type_val = self.entries["Typ"].get()
+        desc_val = self.entries["Opis"].get("0.0", "end").strip()
+
+        if not (date_val and field_val and type_val and desc_val):
             messagebox.showerror("Błąd", "Wszystkie pola muszą być wypełnione")
             return
 
         if values:
-            db_utils.update_tpm_task(values[0], date, field, type_, desc)
+            # values[0] to ID
+            db_utils.update_tpm_task(values[0], date_val, interval_val, field_val, type_val, desc_val)
         else:
-            db_utils.add_tpm_task(date, field, type_, desc)
+            db_utils.add_tpm_task(date_val, interval_val, field_val, type_val, desc_val)
 
         editor.destroy()
         self.load_tasks()
@@ -145,6 +210,5 @@ class TasksWindow:
         self.back_callback()
 
 
-# --- Funkcja wywołująca okno ---
 def show_tasks_window(username, back_callback):
     TasksWindow(username, back_callback)

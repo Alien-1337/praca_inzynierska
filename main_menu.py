@@ -5,6 +5,19 @@ from inventory_window import show_inventory_window
 from tpm_module import print_tpm
 import login_window
 
+# --- IMPORTY NOWYCH MODUŁÓW (Zabezpieczone) ---
+try:
+    from Analytics import show_analytics_window
+except ImportError:
+    def show_analytics_window(u, b):
+        print("Błąd: Brak pliku Analytics.py")
+
+try:
+    from accept_tpm_window import show_accept_window
+except ImportError:
+    def show_accept_window(u, b):
+        print("Błąd: Brak pliku accept_tpm_window.py")
+
 
 def show_main_menu(username):
     ctk.set_appearance_mode("dark")
@@ -28,24 +41,20 @@ def show_main_menu(username):
     grid = ctk.CTkFrame(window, fg_color="transparent")
     grid.pack(expand=True)
 
-    # --- pomocnicza funkcja kafelka ---
+    # --- Pomocnicza funkcja kafelka ---
     def create_tile(parent, title, desc, color, command, row, col, icon="🛠", wide=False):
-        # większe kafelki dla wide=True
+        # Rozmiary kafelków
         if wide:
-            width = 900  # zwiększona szerokość samego tła
-            height = 360  # zwiększona wysokość samego tła
+            width = 900
+            height = 360
         else:
             width = 400
             height = 240
+        wrap = 320
 
-        wrap = 320  # pozostał oryginalny wraplength, tekst się nie zwiększa
-
-        frame = ctk.CTkFrame(
-            parent, corner_radius=20, fg_color=color,
-            width=width, height=height
-        )
+        frame = ctk.CTkFrame(parent, corner_radius=20, fg_color=color, width=width, height=height)
         frame.grid(row=row, column=col, padx=25, pady=25, sticky="nsew")
-        frame.grid_propagate(False)
+        frame.grid_propagate(False)  # Zapobiega kurczeniu się ramki
 
         label_icon = ctk.CTkLabel(frame, text=icon, font=ctk.CTkFont(size=48), text_color="white")
         label_icon.pack(pady=(25, 10))
@@ -56,46 +65,56 @@ def show_main_menu(username):
         label_desc = ctk.CTkLabel(frame, text=desc, font=ctk.CTkFont(size=14), text_color="white", wraplength=wrap)
         label_desc.pack(pady=(8, 15))
 
-        # wycentrowanie tekstu
+        # Centrowanie
         label_title.configure(anchor="center", justify="center")
         label_desc.configure(anchor="center", justify="center")
         label_icon.configure(anchor="center")
 
-        # umożliwienie kliknięcia w cały kafelek
+        # Klikalność całego kafelka
         for widget in (frame, label_icon, label_title, label_desc):
             widget.bind("<Button-1>", lambda e: command())
 
-    # --- funkcja otwierająca podokno ---
+    # --- Funkcja otwierająca podokno ---
     def open_subwindow(func):
         window.withdraw()
         func(username, lambda: [window.deiconify()])
 
-    # --- kafelki ---
-    create_tile(grid, "Zadania", "Przeglądaj i zarządzaj zadaniami", "#3B82F6",
+    # ==========================
+    # UKŁAD KAFELKÓW
+    # ==========================
+
+    # --- RZĄD 0 (Górny) ---
+    create_tile(grid, "Zadania", "Edytuj definicje zadań", "#3B82F6",
                 lambda: open_subwindow(show_tasks_window), 0, 0, "📋", wide=True)
 
-    create_tile(grid, "Drukowanie TPM", "Wydruk zadań dziennych", "#10B981",
+    create_tile(grid, "Drukowanie TPM", "Drukuj listę (Zaległe + Dziś)", "#10B981",
                 print_tpm, 0, 1, "🖨")
 
     create_tile(grid, "Awaria", "Zgłoś lub sprawdź awarię", "#EF4444",
                 lambda: open_subwindow(show_failure_window), 0, 2, "⚠️", wide=True)
 
-    create_tile(grid, "Magazyn", "Podgląd części i materiałów", "#F59E0B",
+    # --- RZĄD 1 (Środkowy) ---
+    create_tile(grid, "Magazyn", "Podgląd części", "#F59E0B",
                 lambda: open_subwindow(show_inventory_window), 1, 0, "📦")
 
     create_tile(grid, "Statystyki", "Raporty i analizy", "#8B5CF6",
-                lambda: print("TODO: raporty"), 1, 1, "📊")
+                lambda: open_subwindow(show_analytics_window), 1, 1, "📊")
 
-    create_tile(grid, "Wyloguj", "Zakończ pracę", "#6B7280",
-                lambda: [window.destroy(), login_window.show_login_window()], 1, 2, "🚪")
+    create_tile(grid, "Zatwierdź TPM", "Odhacz wykonane zadania", "#059669",
+                lambda: open_subwindow(show_accept_window), 1, 2, "✅")
 
-    # --- proporcje siatki ---
-    for i in range(2):
+    # --- RZĄD 2 (Dolny) - WYLOGUJ ---
+    # Umieszczamy przycisk wylogowania na samym dole, na środku (kolumna 1)
+    create_tile(grid, "Wyloguj", "Zakończ pracę i wyjdź", "#6B7280",
+                lambda: [window.destroy(), login_window.show_login_window()], 2, 1, "🚪")
+
+    # --- Konfiguracja siatki (Grid) ---
+    # Teraz mamy 3 rzędy (0, 1, 2)
+    for i in range(3):
         grid.grid_rowconfigure(i, weight=1)
+
+    # Mamy 3 kolumny (0, 1, 2)
     for j in range(3):
         grid.grid_columnconfigure(j, weight=1)
-
-    grid.grid_columnconfigure(2, minsize=250)
-    grid.grid_columnconfigure(1, minsize=250)
 
     window.mainloop()
