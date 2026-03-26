@@ -1,13 +1,16 @@
 import customtkinter as ctk
 
+
 def show_print_tasks_window(username, back_to_menu_func):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
-    window = ctk.CTk()
+    # ✅ POPRAWKA: używamy Toplevel zamiast CTk
+    window = ctk.CTkToplevel()
     window.title("Drukowanie zadań TPM - CMMS by RafałS")
     window.geometry("500x350")
     window.resizable(False, False)
+    window.grab_set()
 
     frame = ctk.CTkFrame(window, corner_radius=15)
     frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -20,19 +23,26 @@ def show_print_tasks_window(username, back_to_menu_func):
     )
     label.pack(pady=(30, 20))
 
-    # Tu można dodać przyszłe opcje np. wybór zakresu dat, rodzaju wydruku itd.
-    ctk.CTkButton(frame, text="(Wkrótce) Drukuj zadania", state="disabled").pack(pady=10)
+    # Placeholder pod przyszłą funkcjonalność
+    ctk.CTkButton(
+        frame,
+        text="(Wkrótce) Drukuj zadania",
+        state="disabled"
+    ).pack(pady=10)
 
+    # Powrót
     btn_back = ctk.CTkButton(
         frame,
         text="Powrót do menu",
         width=200,
-        command=lambda: back_to_menu(window, back_to_menu_func, username)
+        command=lambda: back_to_menu(window, back_to_menu_func)
     )
     btn_back.pack(pady=(20, 30))
 
-    window.mainloop()
 
-def back_to_menu(window, back_to_menu_func, username):
-    window.destroy()
-    back_to_menu_func(username)
+def back_to_menu(window, back_to_menu_func):
+    try:
+        window.destroy()
+        back_to_menu_func()
+    except Exception as e:
+        print("❌ Błąd powrotu do menu:", e)

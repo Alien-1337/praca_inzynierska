@@ -3,7 +3,9 @@ from tkinter import messagebox
 from datetime import datetime, timedelta
 import db_utils
 
+
 def show_failure_form(username):
+
     def calculate_downtime(event=None):
         try:
             start = time_reported.get()
@@ -12,9 +14,12 @@ def show_failure_form(username):
                 fmt = "%H:%M"
                 start_dt = datetime.strptime(start, fmt)
                 end_dt = datetime.strptime(end, fmt)
+
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
+
                 diff = int((end_dt - start_dt).total_seconds() / 60)
+
                 downtime.config(state="normal")
                 downtime.delete(0, "end")
                 downtime.insert(0, str(diff))
@@ -27,6 +32,13 @@ def show_failure_form(username):
 
     def submit():
         try:
+            # ✅ WALIDACJA DATY (PostgreSQL-safe)
+            try:
+                datetime.strptime(date.get(), "%Y-%m-%d")
+            except ValueError:
+                messagebox.showerror("Błąd", "Niepoprawny format daty (YYYY-MM-DD)")
+                return
+
             data = (
                 username,
                 area.get(),
@@ -38,8 +50,12 @@ def show_failure_form(username):
                 time_resolved.get(),
                 int(downtime.get()),
                 department.get(),
-                category.get
+                category.get(),  # ✅ FIX
+                failure_type.get(),  # ✅ DODANE
+                description.get(),  # ✅ DODANE
+                resolver.get()  # ✅ DODANE
             )
+
             if not all(data):
                 messagebox.showwarning("Uwaga", "Wszystkie pola muszą być wypełnione.")
                 return
@@ -47,6 +63,7 @@ def show_failure_form(username):
             db_utils.add_failure(data)
             messagebox.showinfo("Sukces", "Awaria została zgłoszona.")
             win.destroy()
+
         except Exception as e:
             messagebox.showerror("Błąd", str(e))
 
@@ -72,5 +89,9 @@ def show_failure_form(username):
     failure_type = add_label_entry("Typ awarii:", 10)
     description = add_label_entry("Opis awarii:", 11)
     resolver = add_label_entry("Osoba usuwająca:", 12)
+
+    # ✅ AUTO LICZENIE CZASU
+    time_reported.bind("<FocusOut>", calculate_downtime)
+    time_resolved.bind("<FocusOut>", calculate_downtime)
 
     tk.Button(win, text="Zgłoś awarię", command=submit).grid(row=13, columnspan=2, pady=10)

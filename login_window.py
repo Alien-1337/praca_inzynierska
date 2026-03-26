@@ -35,16 +35,19 @@ def show_login_window():
     label_message.pack(pady=5)
 
     def login():
-        username = entry_username.get()
-        password = entry_password.get()
+        username = entry_username.get().strip()  # ✅ FIX
+        password = entry_password.get().strip()  # ✅ FIX
+
+        # ✅ WALIDACJA
+        if not username or not password:
+            label_message.configure(text="Uzupełnij login i hasło", text_color="orange")
+            return
 
         user_data = db_utils.get_user(username)
         if user_data is None:
             label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
             return
 
-        # --- TU BYŁ BŁĄD. PONIŻEJ JEST POPRAWIONA LINIA ---
-        # Używamy *_, aby zignorować nadmiarowe kolumny z bazy danych
         try:
             _, _, stored_hash, stored_salt, *_ = user_data
 
@@ -52,19 +55,17 @@ def show_login_window():
 
             if input_hash == stored_hash:
                 label_message.configure(text="Zalogowano pomyślnie", text_color="green")
-                # Opóźnienie zamknięcia okna minimalizuje błędy "invalid command name"
+
                 window.after(100, lambda: [window.destroy(), main_menu.show_main_menu(username)])
             else:
                 label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
+
         except ValueError:
-            label_message.configure(text="Błąd danych użytkownika (struktura bazy)", text_color="red")
-            print(f"DEBUG: Otrzymano {len(user_data)} kolumn, oczekiwano minimum 4.")
+            label_message.configure(text="Błąd danych użytkownika", text_color="red")
+            print(f"DEBUG: Otrzymano {len(user_data)} kolumn.")
 
     def open_register():
-        # Najpierw zamykamy okno
         window.destroy()
-
-        # Potem importujemy i otwieramy nowe w bloku try-except, żeby widzieć błąd
         try:
             import register_window
             register_window.show_register_window()
@@ -77,8 +78,12 @@ def show_login_window():
     btn_login = ctk.CTkButton(frame, text="Zaloguj się", width=200, command=login)
     btn_login.pack(pady=(20, 10))
 
-    btn_register = ctk.CTkButton(frame, text="Załóż konto", width=200, fg_color="#444", hover_color="#555",
+    btn_register = ctk.CTkButton(frame, text="Załóż konto", width=200,
+                                 fg_color="#444", hover_color="#555",
                                  command=open_register)
     btn_register.pack(pady=(0, 30))
+
+    # ✅ ENTER = login
+    window.bind("<Return>", lambda event: login())
 
     window.mainloop()

@@ -2,12 +2,11 @@ import tempfile
 import os
 from tkinter import messagebox
 from datetime import date
-from db_utils import get_pending_tpm_tasks  # ZMIANA FUNKCJI
+from db_utils import get_pending_tpm_tasks
 
 
 def print_tpm():
     try:
-        # Pobieramy zadania oczekujące (dzisiejsze + zaległe)
         tasks = get_pending_tpm_tasks()
 
         if not tasks:
@@ -15,27 +14,42 @@ def print_tpm():
             return
 
         today_str = date.today().strftime("%d.%m.%Y")
-        content = f"HARMONOGRAM ZADAŃ TPM - {today_str}\n"
-        content += "=" * 60 + "\n\n"
 
-        # task = (id, date, interval, field, type, description, STATUS)
+        content = []
+        content.append(f"HARMONOGRAM ZADAŃ TPM - {today_str}")
+        content.append("=" * 60)
+        content.append("")
+
+        # task = (id, date, interval, field, type, description, status)
         for i, task in enumerate(tasks, 1):
-            t_id, start_date, interval, field, task_type, desc, status = task
+            try:
+                t_id, start_date, interval, field, task_type, desc, status = task
+            except ValueError:
+                print("❌ Błąd struktury danych:", task)
+                continue
 
-            # Oznaczenie zaległości w wydruku
-            prefix = "[!]" if "ZALEGŁE" in status else "[ ]"
+            prefix = "[!]" if "ZALEGŁE" in str(status).upper() else "[ ]"
 
-            content += f"ZADANIE #{i}  -- STATUS: {status}\n"
-            content += f"Dział: {field} | Typ: {task_type}\n"
-            content += f"Częstotliwość: {interval}\n"
-            content += f"OPIS: {desc}\n"
-            content += "-" * 60 + "\n"
+            content.append(f"{prefix} ZADANIE #{i}  -- STATUS: {status}")
+            content.append(f"Dział: {field} | Typ: {task_type}")
+            content.append(f"Częstotliwość: {interval}")
+            content.append(f"OPIS: {desc}")
+            content.append("-" * 60)
 
+        final_text = "\n".join(content)
+
+        # Tworzenie pliku tymczasowego
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as tf:
-            tf.write(content)
+            tf.write(final_text)
             temp_path = tf.name
 
-        os.startfile(temp_path, "print")
+        # Drukowanie (Windows)
+        try:
+            os.startfile(temp_path, "print")
+        except Exception as e:
+            print("❌ Problem z drukowaniem:", e)
+            messagebox.showinfo("TPM", f"Plik zapisany:\n{temp_path}")
 
     except Exception as e:
+        print("❌ Błąd główny TPM:", e)
         messagebox.showerror("Błąd drukowania", f"Nie udało się wydrukować:\n{e}")

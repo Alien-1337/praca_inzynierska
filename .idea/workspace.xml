@@ -5,17 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="03e4cc16-c28f-46f1-82d4-4aa3ad2a60f3" name="Changes" comment="Update">
-      <change afterPath="$PROJECT_DIR$/user_management_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/CMMS_by_RafalS.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/CMMS_by_RafalS.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Analytics.py" beforeDir="false" afterPath="$PROJECT_DIR$/Analytics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmms.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/db_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/db_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/failure_report.py" beforeDir="false" afterPath="$PROJECT_DIR$/failure_report.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/failure_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/failure_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inventory_view.py" beforeDir="false" afterPath="$PROJECT_DIR$/inventory_view.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/inventory_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/inventory_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/login_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/login_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/print_tasks_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/print_tasks_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/register_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/register_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tasks_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/tasks_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tpm_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tpm_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user_management_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/user_management_window.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,8 +64,8 @@
 }</component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/RafalSa/CMMS_by_RafalS&quot;,
-    &quot;accountId&quot;: &quot;ee34d9e6-0ca2-466d-9113-92752c4ad6d1&quot;
+    &quot;url&quot;: &quot;https://github.com/RafalSa/CMMS_by_RafalS.git&quot;,
+    &quot;accountId&quot;: &quot;ebc89af0-f241-4334-bf37-32bd4a2ce6b7&quot;
   }
 }</component>
   <component name="ProblemsViewState">
@@ -82,8 +88,10 @@
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.setup_db.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/rafal/PycharmProjects/CMMS_by_RafalS&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -156,7 +164,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-e0ed3721d81e-36ea0e71a18c-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.25410.159" />
+        <option value="bundled-python-sdk-07523f343e4f-968fe969f28a-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.28539.27" />
       </set>
     </attachedChunks>
   </component>
