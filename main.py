@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv("data.env")
 import db_utils
 import login_window
 

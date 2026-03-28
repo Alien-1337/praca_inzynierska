@@ -15,7 +15,7 @@ def show_login_window():
     ctk.set_default_color_theme("blue")
 
     window = ctk.CTk()
-    window.title("Logowanie - CMMS by RafałS")
+    window.title("Logowanie - CMMS")
     window.geometry("400x400")
     window.resizable(False, False)
 
@@ -34,29 +34,40 @@ def show_login_window():
     label_message = ctk.CTkLabel(frame, text="", text_color="red")
     label_message.pack(pady=5)
 
-    def login():
-        username = entry_username.get().strip()  # ✅ FIX
-        password = entry_password.get().strip()  # ✅ FIX
+    def go_to_main_menu(username):
+        """Bezpieczne przejście do głównego menu — niszczy okno i otwiera nowe."""
+        window.destroy()
+        main_menu.show_main_menu(username)
 
-        # ✅ WALIDACJA
+    def login():
+        username = entry_username.get().strip()
+        password = entry_password.get().strip()
+
         if not username or not password:
             label_message.configure(text="Uzupełnij login i hasło", text_color="orange")
             return
 
-        user_data = db_utils.get_user(username)
+        try:
+            user_data = db_utils.get_user(username)
+        except Exception as e:
+            label_message.configure(text="Błąd połączenia z bazą danych", text_color="red")
+            print(f"❌ Błąd bazy danych: {e}")
+            return
+
         if user_data is None:
             label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
             return
 
         try:
             _, _, stored_hash, stored_salt, *_ = user_data
-
             input_hash = hash_password(password, stored_salt)
 
             if input_hash == stored_hash:
-                label_message.configure(text="Zalogowano pomyślnie", text_color="green")
-
-                window.after(100, lambda: [window.destroy(), main_menu.show_main_menu(username)])
+                label_message.configure(text="Zalogowano pomyślnie ✅", text_color="green")
+                # Krótkie opóźnienie żeby użytkownik zobaczył komunikat,
+                # po czym niszczymy okno i otwieramy główne menu.
+                # after() zamiast listy w lambdzie — bezpieczniejsze i czytelniejsze.
+                window.after(800, lambda: go_to_main_menu(username))
             else:
                 label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
 
@@ -65,25 +76,26 @@ def show_login_window():
             print(f"DEBUG: Otrzymano {len(user_data)} kolumn.")
 
     def open_register():
-        window.destroy()
+        """Przejście do okna rejestracji."""
         try:
             import register_window
+            window.destroy()
             register_window.show_register_window()
         except Exception as e:
-            print("!!! BŁĄD OTWIERANIA REJESTRACJI !!!")
-            print(e)
+            print("❌ Błąd otwierania rejestracji:")
             import traceback
             traceback.print_exc()
 
     btn_login = ctk.CTkButton(frame, text="Zaloguj się", width=200, command=login)
     btn_login.pack(pady=(20, 10))
 
-    btn_register = ctk.CTkButton(frame, text="Załóż konto", width=200,
-                                 fg_color="#444", hover_color="#555",
-                                 command=open_register)
+    btn_register = ctk.CTkButton(
+        frame, text="Załóż konto", width=200,
+        fg_color="#444", hover_color="#555",
+        command=open_register
+    )
     btn_register.pack(pady=(0, 30))
 
-    # ✅ ENTER = login
     window.bind("<Return>", lambda event: login())
 
     window.mainloop()

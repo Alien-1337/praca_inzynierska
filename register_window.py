@@ -14,9 +14,8 @@ def show_register_window():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
-    # ✅ POPRAWKA: Toplevel zamiast CTk
     window = ctk.CTkToplevel()
-    window.title("Rejestracja - CMMS by RafałS")
+    window.title("Rejestracja - CMMS")
     window.geometry("400x400")
     window.resizable(False, False)
     window.grab_set()

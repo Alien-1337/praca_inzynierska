@@ -32,13 +32,13 @@ def show_main_menu(username):
     ctk.set_default_color_theme("blue")
 
     window = ctk.CTk()
-    window.title(f"Panel główny - CMMS by RafałS ({username})")
+    window.title(f"Panel główny - CMMS ({username})")
     window.geometry("1920x1080")
     window.state("zoomed")
 
     header = ctk.CTkLabel(
         window,
-        text=f"CMMS by RafałS – Witaj, {username}",
+        text=f"CMMS - Witaj, {username}",
         font=ctk.CTkFont(size=28, weight="bold"),
         text_color="#f5f5f5"
     )
@@ -84,6 +84,12 @@ def show_main_menu(username):
             print("❌ Błąd otwierania okna:", e)
             window.deiconify()
 
+    # --- WYLOGOWANIE ---
+
+    def logout():
+        window.destroy()
+        login_window.show_login_window()
+
     # --- UKŁAD KAFELKÓW ---
 
     # Rząd 0
@@ -111,7 +117,7 @@ def show_main_menu(username):
                 lambda: open_subwindow(show_user_management), 2, 0, "👥")
 
     create_tile(grid, "Wyloguj", "Zakończ pracę", "#6B7280",
-                lambda: [window.destroy(), login_window.show_login_window()], 2, 2, "🚪")
+                lambda: window.after(0, logout), 2, 2, "🚪")
 
     for i in range(3):
         grid.grid_rowconfigure(i, weight=1)

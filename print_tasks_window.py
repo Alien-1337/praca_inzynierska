@@ -5,9 +5,8 @@ def show_print_tasks_window(username, back_to_menu_func):
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
-    # ✅ POPRAWKA: używamy Toplevel zamiast CTk
     window = ctk.CTkToplevel()
-    window.title("Drukowanie zadań TPM - CMMS by RafałS")
+    window.title("Drukowanie zadań TPM - CMMS")
     window.geometry("500x350")
     window.resizable(False, False)
     window.grab_set()
@@ -23,14 +22,12 @@ def show_print_tasks_window(username, back_to_menu_func):
     )
     label.pack(pady=(30, 20))
 
-    # Placeholder pod przyszłą funkcjonalność
     ctk.CTkButton(
         frame,
         text="(Wkrótce) Drukuj zadania",
         state="disabled"
     ).pack(pady=10)
 
-    # Powrót
     btn_back = ctk.CTkButton(
         frame,
         text="Powrót do menu",

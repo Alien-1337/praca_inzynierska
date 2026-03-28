@@ -8,7 +8,7 @@ def show_inventory_window(username, back_to_menu_func):
     ctk.set_default_color_theme("blue")
 
     window = ctk.CTkToplevel()
-    window.title("Magazyn - CMMS by RafałS")
+    window.title("Magazyn - CMMS")
     window.geometry("900x700")
     window.grab_set()
     window.protocol("WM_DELETE_WINDOW", lambda: back_to_menu(window, back_to_menu_func, username))
