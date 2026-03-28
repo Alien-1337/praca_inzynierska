@@ -69,7 +69,7 @@ It provides tools for task scheduling, failure reporting, and inventory manageme
 
 ## 📂 Project Structure
 
-CMMS_by_RafalS/  
+CMMS/  
 │  
 ├── LICENSE # Project license  
 ├── README.md # Project documentation  
@@ -94,7 +94,8 @@ CMMS_by_RafalS/
 
 - **Rafał Sak** – Project creator, Python developer, UI design, database architecture  
   GitHub: [RafalSa](https://github.com/RafalSa)  
-
+- **Paweł Przybyła** - Database administrator, Python developer
+- GitHub: [Alien-1337](https://github.com/Alien-1337)
 ---
 
 ## 📜 License
