@@ -1,6 +1,6 @@
-# CMMS by RafalS
+# CMMS
 
-**CMMS by RafalS** is a modern desktop **Computerized Maintenance Management System (CMMS)** application written in Python, designed to streamline maintenance management processes in industrial environments.  
+**CMMS** is a modern desktop **Computerized Maintenance Management System (CMMS)** application written in Python, designed to streamline maintenance management processes in industrial environments.  
 It provides tools for task scheduling, failure reporting, and inventory management in one integrated, user-friendly interface.
 
 ---
