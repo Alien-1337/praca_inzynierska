@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 import db_utils
+import permissions
 from datetime import datetime, timedelta
 
 FAILURE_HEADERS = [
@@ -8,36 +9,62 @@ FAILURE_HEADERS = [
     "Data", "Zmiana", "Godzina zgłoszenia", "Godzina zakończenia",
     "Czas awarii (min)", "Dział", "Kategoria", "Typ awarii",
     "Opis", "Resolver", "Użyta część",
-    "Koszt robocizny", "Koszt części", "Koszt całkowity"
+    "Koszt robocizny", "Koszt części", "Koszt całkowity", "Status"
 ]
+
+# Co widzi w historii osoba bez prawa do rozwiązywania awarii (np. Użytkownik):
+# tylko własne zgłoszenia i bez danych o naprawie oraz kosztach.
+USER_VISIBLE_HEADERS = {
+    "ID", "Obszar", "Podsystem", "Podsystem funkcjonalny", "Data", "Zmiana",
+    "Godzina zgłoszenia", "Dział", "Kategoria", "Typ awarii", "Opis", "Status"
+}
+
+# Tryby formularza
+MODE_REPORT = "report"  # samo zgłoszenie, bez naprawy (Użytkownik, Administrator)
+MODE_FULL = "full"      # zapis awarii już naprawionej (Technik, Administrator)
 
 
 class FailureWindow(ctk.CTkToplevel):
-    def __init__(self, username, return_callback):
+    def __init__(self, username, return_callback, mode=MODE_REPORT):
         super().__init__()
         self.return_callback = return_callback
         self.username = username
-        self.title("Zgłoszenie awarii - CMMS")
+        self.mode = mode
+        full = (mode == MODE_FULL)
+
+        # Kto może rozwiązywać awarie, widzi całą historię; pozostali - tylko swoje zgłoszenia.
+        self.sees_all = db_utils.user_can(username, permissions.FEATURE_FAILURE_RESOLVE)
+
+        self.title("Zapis zakończonej awarii - CMMS" if full else "Zgłoszenie awarii - CMMS")
         self.geometry("1200x850")
         self.resizable(False, False)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self.back_to_menu)
 
-        # --- INVENTORY ---
+        # --- INVENTORY (część zużyta przy naprawie - tylko w trybie pełnym) ---
         self.inventory_cache = []
         part_display_list = [""]
 
-        try:
-            self.inventory_cache = db_utils.get_inventory_items()
-            for item in self.inventory_cache:
-                part_display_list.append(f"{item[1]} | SAP: {item[2]}")
-        except Exception as e:
-            print(f"⚠️ Błąd ładowania magazynu: {e}")
+        if full:
+            try:
+                self.inventory_cache = db_utils.get_inventory_items()
+                for item in self.inventory_cache:
+                    part_display_list.append(f"{item[1]} | SAP: {item[2]}")
+            except Exception as e:
+                print(f"⚠️ Błąd ładowania magazynu: {e}")
 
         # --- UI ---
         self.scrollable_frame = ctk.CTkScrollableFrame(self, width=1150, height=700, corner_radius=15)
         self.scrollable_frame.pack(pady=20, padx=20)
 
+        if not full:
+            ctk.CTkLabel(
+                self.scrollable_frame,
+                text="Opisz usterkę. Technik zajmie się nią w module „Rozwiązywanie awarii”.",
+                text_color="#9CA3AF", anchor="w"
+            ).pack(fill="x", padx=10, pady=(5, 0))
+
+        # Pola zgłoszenia (wspólne) + pola naprawy (tylko tryb pełny), w kolejności jak w formularzu
         self.fields = {
             "Obszar systemu":                  ctk.CTkEntry(self.scrollable_frame),
             "Podsystem":                       ctk.CTkEntry(self.scrollable_frame),
@@ -45,18 +72,22 @@ class FailureWindow(ctk.CTkToplevel):
             "Data zgłoszenia (YYYY-MM-DD)":    ctk.CTkEntry(self.scrollable_frame),
             "Zmiana":                          ctk.CTkComboBox(self.scrollable_frame, values=["1", "2", "3"]),
             "Godzina zgłoszenia (HH:MM)":      ctk.CTkEntry(self.scrollable_frame),
-            "Godzina zakończenia (HH:MM)":     ctk.CTkEntry(self.scrollable_frame),
-            "Czas awarii (minuty)":            ctk.CTkEntry(self.scrollable_frame),
-            "Dział":                           ctk.CTkComboBox(self.scrollable_frame,
-                                                   values=["Utrzymanie ruchu", "IT", "Produkcja", "Logistyka"]),
-            "Kategoria awarii":                ctk.CTkComboBox(self.scrollable_frame,
-                                                   values=["Mechaniczna", "Elektryczna", "Programowa", "Inna"]),
-            "Typ awarii":                      ctk.CTkComboBox(self.scrollable_frame,
-                                                   values=["Błąd czujnika", "Uszkodzenie silnika",
-                                                           "Brak zasilania", "Zawieszenie systemu"]),
-            "Zużyta część (opcjonalne)":       ctk.CTkComboBox(self.scrollable_frame, values=part_display_list),
-            "Opis awarii":                     ctk.CTkTextbox(self.scrollable_frame, height=120),
         }
+        if full:
+            self.fields["Godzina zakończenia (HH:MM)"] = ctk.CTkEntry(self.scrollable_frame)
+            self.fields["Czas awarii (minuty)"] = ctk.CTkEntry(self.scrollable_frame)
+
+        self.fields["Dział"] = ctk.CTkComboBox(
+            self.scrollable_frame, values=["Utrzymanie ruchu", "IT", "Produkcja", "Logistyka"])
+        self.fields["Kategoria awarii"] = ctk.CTkComboBox(
+            self.scrollable_frame, values=["Mechaniczna", "Elektryczna", "Programowa", "Inna"])
+        self.fields["Typ awarii"] = ctk.CTkComboBox(
+            self.scrollable_frame,
+            values=["Błąd czujnika", "Uszkodzenie silnika", "Brak zasilania", "Zawieszenie systemu"])
+        if full:
+            self.fields["Zużyta część (opcjonalne)"] = ctk.CTkComboBox(
+                self.scrollable_frame, values=part_display_list)
+        self.fields["Opis awarii"] = ctk.CTkTextbox(self.scrollable_frame, height=120)
 
         # --- DEFAULTS ---
         self.fields["Dział"].set("Utrzymanie ruchu")
@@ -64,7 +95,8 @@ class FailureWindow(ctk.CTkToplevel):
         self.fields["Typ awarii"].set("Błąd czujnika")
         self.fields["Data zgłoszenia (YYYY-MM-DD)"].insert(0, datetime.now().strftime("%Y-%m-%d"))
         self.fields["Godzina zgłoszenia (HH:MM)"].insert(0, datetime.now().strftime("%H:%M"))
-        self.fields["Czas awarii (minuty)"].configure(state="disabled")
+        if full:
+            self.fields["Czas awarii (minuty)"].configure(state="disabled")
 
         # --- RENDER ---
         for label, widget in self.fields.items():
@@ -73,17 +105,18 @@ class FailureWindow(ctk.CTkToplevel):
             )
             widget.pack(padx=10, fill="x")
 
-        self.fields["Godzina zgłoszenia (HH:MM)"].bind("<FocusOut>", self.calculate_downtime)
-        self.fields["Godzina zakończenia (HH:MM)"].bind("<FocusOut>", self.calculate_downtime)
+        if full:
+            self.fields["Godzina zgłoszenia (HH:MM)"].bind("<FocusOut>", self.calculate_downtime)
+            self.fields["Godzina zakończenia (HH:MM)"].bind("<FocusOut>", self.calculate_downtime)
 
         # --- BUTTONS ---
         self.bottom_frame = ctk.CTkFrame(self, fg_color="#2b2b2b")
         self.bottom_frame.pack(pady=10)
 
-        ctk.CTkButton(self.bottom_frame, text="Zapisz Zgłoszenie",
+        ctk.CTkButton(self.bottom_frame, text="Zapisz awarię" if full else "Zgłoś awarię",
                       command=self.submit_failure, fg_color="#1f6aa5").pack(side="left", padx=10)
 
-        ctk.CTkButton(self.bottom_frame, text="Pokaż historię",
+        ctk.CTkButton(self.bottom_frame, text="Pokaż historię" if self.sees_all else "Moje zgłoszenia",
                       command=self.show_history, fg_color="#1f6aa5").pack(side="left", padx=10)
 
         ctk.CTkButton(self.bottom_frame, text="Powrót",
@@ -118,6 +151,8 @@ class FailureWindow(ctk.CTkToplevel):
             self.fields["Czas awarii (minuty)"].configure(state="disabled")
 
     def submit_failure(self):
+        full = (self.mode == MODE_FULL)
+
         # Walidacja daty
         date_val = self.fields["Data zgłoszenia (YYYY-MM-DD)"].get().strip()
         try:
@@ -126,17 +161,28 @@ class FailureWindow(ctk.CTkToplevel):
             messagebox.showerror("Błąd", "Niepoprawny format daty.\nUżyj formatu: YYYY-MM-DD")
             return
 
-        # Walidacja czasu awarii
-        downtime_val = self.fields["Czas awarii (minuty)"].get().strip()
-        if not downtime_val:
-            messagebox.showwarning("Błąd", "Najpierw podaj godziny, aby obliczyć czas awarii.")
+        # Walidacja godziny zgłoszenia - później liczony jest od niej przestój
+        try:
+            time_reported = datetime.strptime(
+                self.fields["Godzina zgłoszenia (HH:MM)"].get().strip(), "%H:%M"
+            ).strftime("%H:%M")
+        except ValueError:
+            messagebox.showerror("Błąd", "Niepoprawny format godziny zgłoszenia.\nUżyj formatu: HH:MM")
             return
 
-        try:
-            downtime = int(downtime_val)
-        except ValueError:
-            messagebox.showerror("Błąd", "Czas awarii musi być liczbą całkowitą.")
-            return
+        # Walidacja czasu awarii (tylko przy zapisie awarii już naprawionej)
+        downtime = None
+        if full:
+            downtime_val = self.fields["Czas awarii (minuty)"].get().strip()
+            if not downtime_val:
+                messagebox.showwarning("Błąd", "Najpierw podaj godziny, aby obliczyć czas awarii.")
+                return
+
+            try:
+                downtime = int(downtime_val)
+            except ValueError:
+                messagebox.showerror("Błąd", "Czas awarii musi być liczbą całkowitą.")
+                return
 
         # Wymagane pola tekstowe
         required = {
@@ -151,13 +197,6 @@ class FailureWindow(ctk.CTkToplevel):
                                    "Uzupełnij pola:\n" + "\n".join(f"• {m}" for m in missing))
             return
 
-        # Parsowanie wybranej części z magazynu
-        raw_part = self.fields["Zużyta część (opcjonalne)"].get().strip()
-        if " | SAP:" in raw_part:
-            final_part_name = raw_part.split(" | SAP:")[0]
-        else:
-            final_part_name = raw_part
-
         data = {
             "username":               self.username,
             "obszar_system":          required["Obszar systemu"],
@@ -165,21 +204,38 @@ class FailureWindow(ctk.CTkToplevel):
             "podsystem_funkcjonalny": required["Podsystem funkcjonalny"],
             "data_zgloszenia":        date_val,
             "zmiana":                 self.fields["Zmiana"].get(),
-            "godzina_zgloszenia":     self.fields["Godzina zgłoszenia (HH:MM)"].get(),
-            "godzina_zakonczenia":    self.fields["Godzina zakończenia (HH:MM)"].get(),
-            "czas_awarii":            downtime,
+            "godzina_zgloszenia":     time_reported,
             "dzial":                  self.fields["Dział"].get(),
             "kategoria_awarii":       self.fields["Kategoria awarii"].get(),
             "awaria_jaka":            self.fields["Typ awarii"].get(),
             "opis_awarii":            required["Opis awarii"],
-            "osoba_niwelujaca":       self.username,
-            "uzyta_czesc":            final_part_name,
         }
 
+        if full:
+            # Parsowanie wybranej części z magazynu
+            raw_part = self.fields["Zużyta część (opcjonalne)"].get().strip()
+            if " | SAP:" in raw_part:
+                final_part_name = raw_part.split(" | SAP:")[0]
+            else:
+                final_part_name = raw_part
+
+            data.update({
+                "godzina_zakonczenia": self.fields["Godzina zakończenia (HH:MM)"].get().strip(),
+                "czas_awarii":         downtime,
+                "osoba_niwelujaca":    self.username,
+                "uzyta_czesc":         final_part_name,
+            })
+
         try:
-            success = db_utils.add_failure(data)
+            if full:
+                success = db_utils.add_failure(data)
+                ok_message = "Awaria została zapisana."
+            else:
+                success = db_utils.report_failure(data)
+                ok_message = "Awaria została zgłoszona.\nTechnik zajmie się nią w module „Rozwiązywanie awarii”."
+
             if success:
-                messagebox.showinfo("Sukces", "Awaria została zapisana.")
+                messagebox.showinfo("Sukces", ok_message)
                 self.back_to_menu()
             else:
                 messagebox.showerror("Błąd", "Nie udało się zapisać awarii.\nSprawdź logi konsoli.")
@@ -188,7 +244,7 @@ class FailureWindow(ctk.CTkToplevel):
 
     def show_history(self):
         history_window = ctk.CTkToplevel(self)
-        history_window.title("Historia Awarii")
+        history_window.title("Historia Awarii" if self.sees_all else "Moje zgłoszenia")
         history_window.geometry("1100x600")
         history_window.grab_set()
 
@@ -196,7 +252,7 @@ class FailureWindow(ctk.CTkToplevel):
         text.pack(fill="both", expand=True, padx=10, pady=10)
 
         try:
-            failures = db_utils.get_failure_history()
+            failures = db_utils.get_failure_history(None if self.sees_all else self.username)
         except Exception as e:
             text.insert("end", f"❌ Błąd pobierania historii: {e}")
             return
@@ -207,7 +263,11 @@ class FailureWindow(ctk.CTkToplevel):
 
         for f in failures:
             try:
-                lines = [f"{k}: {v}" for k, v in zip(FAILURE_HEADERS, f)]
+                lines = [
+                    f"{k}: {'—' if v is None else v}"
+                    for k, v in zip(FAILURE_HEADERS, f)
+                    if self.sees_all or k in USER_VISIBLE_HEADERS
+                ]
                 text.insert("end", "\n".join(lines) + "\n" + "-" * 60 + "\n")
             except Exception as e:
                 text.insert("end", str(f) + "\n" + "-" * 60 + "\n")
@@ -219,4 +279,5 @@ class FailureWindow(ctk.CTkToplevel):
 
 
 def open_failure_window(username, return_callback):
-    FailureWindow(username, return_callback)
+    """Kafelek 'Zgłoszenie Awarii' - formularz samego zgłoszenia (bez naprawy)."""
+    FailureWindow(username, return_callback, mode=MODE_REPORT)

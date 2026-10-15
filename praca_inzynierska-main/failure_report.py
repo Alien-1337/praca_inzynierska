@@ -2,9 +2,19 @@ import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime, timedelta
 import db_utils
+import permissions
 
 
 def show_failure_form(username, back_callback=None):
+
+    # Ten formularz zapisuje awarię już naprawioną (z osobą usuwającą i czasem),
+    # więc wymaga prawa do rozwiązywania awarii: Technik lub Administrator.
+    if not db_utils.user_can(username, permissions.FEATURE_FAILURE_RESOLVE):
+        messagebox.showerror("Brak uprawnień",
+                             "Zapis rozwiązanej awarii mogą wykonać: Technik i Administrator.")
+        if back_callback:
+            back_callback()
+        return
 
     win = ctk.CTkToplevel()
     win.title("Zgłoszenie awarii")

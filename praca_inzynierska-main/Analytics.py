@@ -98,9 +98,15 @@ class AnalyticsWindow:
 
         total_failures = len(self.raw_data)
         total_downtime = sum(row[9] for row in self.raw_data if row[9] is not None)
-        mttr = round(total_downtime / total_failures, 1) if total_failures > 0 else 0
+
+        # Zgłoszone i będące w naprawie awarie nie mają jeszcze przestoju,
+        # więc MTTR liczymy tylko z awarii naprawionych.
+        resolved_failures = sum(1 for row in self.raw_data if row[9] is not None)
+        open_failures = sum(1 for row in self.raw_data if row[19] != db_utils.STATUS_RESOLVED)
+        mttr = round(total_downtime / resolved_failures, 1) if resolved_failures > 0 else 0
 
         self.create_kpi_card(kpi_frame, "Liczba Awarii (Total)", str(total_failures), "#3B8ED0")
+        self.create_kpi_card(kpi_frame, "Otwarte Awarie", str(open_failures), "#E59400")
         self.create_kpi_card(kpi_frame, "Suma Przestojów", f"{total_downtime} min", "#FF5555")
         self.create_kpi_card(kpi_frame, "Średnie MTTR", f"{mttr} min", "#2CC985")
 

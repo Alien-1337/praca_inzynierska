@@ -54,7 +54,8 @@ def show_register_window():
             success = db_utils.add_user(username, password_hash, salt)
 
             if success:
-                label_message.configure(text="Konto utworzone!", text_color="green")
+                role = db_utils.get_user_role(username)
+                label_message.configure(text=f"Konto utworzone! Rola: {role}", text_color="green")
             else:
                 label_message.configure(text="Użytkownik już istnieje", text_color="red")
 

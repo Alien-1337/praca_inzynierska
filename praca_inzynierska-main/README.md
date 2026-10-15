@@ -9,7 +9,7 @@ It provides tools for task scheduling, failure reporting, and inventory manageme
 
 ### 🔑 User Authentication
 - Secure login and account creation.
-- Role-based access to system functions.
+- **Role-based access** to system functions: Administrator, Kierownik (Manager), Użytkownik (User) and Technik (Technician) – see [Roles](#-roles-and-permissions).
 - Modern and minimal dark-themed UI for easy navigation.
 
 ### 📅 TPM Task Management
@@ -29,12 +29,26 @@ It provides tools for task scheduling, failure reporting, and inventory manageme
   - Downtime duration
   - Department and failure category
   - Failure type and description
+- Failure workflow with statuses: **Zgłoszona → W naprawie → Rozwiązana** (users report, technicians take over and close failures; downtime and costs are calculated on closing).
 - Integrated failure history view for easy reference.
 
 ### 📦 Inventory Management
 - Search spare parts by **name** or **SAP number**.
 - View warehouse stock in a clean, scrollable list.
 - Supports quick lookup for maintenance tasks.
+
+---
+
+## 🔐 Roles and permissions
+
+| Role | Access |
+|---|---|
+| **Administrator** | all functions, including user rates and role assignment |
+| **Kierownik** (Manager) | reports and visualizations (Statystyki) |
+| **Użytkownik** (User) | reporting failures |
+| **Technik** (Technician) | resolving failures, updating state (Zatwierdź TPM) and the warehouse (Magazyn) |
+
+The whole permission matrix lives in [`permissions.py`](permissions.py). The first account created in an empty database becomes Administrator; all other new accounts start as *Użytkownik*. Setup, pgAdmin 4 instructions and troubleshooting (in Polish): [`URUCHOMIENIE.md`](URUCHOMIENIE.md).
 
 ---
 
@@ -61,7 +75,7 @@ It provides tools for task scheduling, failure reporting, and inventory manageme
 
 - **Language:** Python 3.x  
 - **GUI Framework:** [customtkinter](https://github.com/TomSchimansky/CustomTkinter)  
-- **Database:** SQLite (local file-based storage)  
+- **Database:** PostgreSQL ([psycopg2](https://www.psycopg.org/); connection settings in `data.env`, see `data.env.example`)  
 - **Platform:** Windows (tested), cross-platform compatible with Python & tkinter  
 - **Version Control:** GitHub  
 
@@ -73,11 +87,17 @@ CMMS/
 │  
 ├── LICENSE # Project license  
 ├── README.md # Project documentation  
-├── cmms.db # SQLite database  
+├── URUCHOMIENIE.md # Setup guide, roles, pgAdmin 4 (Polish)  
+├── requirements.txt # Python dependencies  
+├── data.env.example # Database connection template  
+├── cmms.db # Old SQLite file (no longer used)  
 │  
+├── sql/001_add_roles.sql # Roles + failure status migration (run in pgAdmin 4)  
+├── permissions.py # Roles and permission matrix  
 ├── db_utils.py # Database operations  
 ├── failure_report.py # Failure reporting logic  
 ├── failure_window.py # Failure reporting UI  
+├── failure_resolve_window.py # Technician UI: repair queue  
 ├── inventory_view.py # Inventory list display  
 ├── inventory_window.py # Inventory search UI  
 ├── login_window.py # Login window  
@@ -85,7 +105,7 @@ CMMS/
 ├── main_menu.py # Main navigation menu  
 ├── print_tasks_window.py # Print TPM tasks window  
 ├── register_window.py # User registration window  
-├── setup_db.py # Database initialization  
+├── setup_db.py # Database initialization (calls db_utils.create_tables)  
 ├── tasks_window.py # TPM task management UI  
 └── tpm_module.py # TPM task handling logic  
 

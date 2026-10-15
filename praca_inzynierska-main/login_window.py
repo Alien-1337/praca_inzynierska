@@ -34,10 +34,10 @@ def show_login_window():
     label_message = ctk.CTkLabel(frame, text="", text_color="red")
     label_message.pack(pady=5)
 
-    def go_to_main_menu(username):
+    def go_to_main_menu(username, role):
         """Bezpieczne przejście do głównego menu — niszczy okno i otwiera nowe."""
         window.destroy()
-        main_menu.show_main_menu(username)
+        main_menu.show_main_menu(username, role)
 
     def login():
         username = entry_username.get().strip()
@@ -64,10 +64,11 @@ def show_login_window():
 
             if input_hash == stored_hash:
                 label_message.configure(text="Zalogowano pomyślnie ✅", text_color="green")
+                role = db_utils.get_user_role(username)  # od roli zależy, jakie kafelki zobaczy
                 # Krótkie opóźnienie żeby użytkownik zobaczył komunikat,
                 # po czym niszczymy okno i otwieramy główne menu.
                 # after() zamiast listy w lambdzie — bezpieczniejsze i czytelniejsze.
-                window.after(800, lambda: go_to_main_menu(username))
+                window.after(800, lambda: go_to_main_menu(username, role))
             else:
                 label_message.configure(text="Nieprawidłowa nazwa użytkownika lub hasło", text_color="red")
 
